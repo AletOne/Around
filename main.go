@@ -39,12 +39,13 @@ type Post struct {
 
 func main() {
 	// Create a client
-	client, err := elastic.NewClient(elastic.SetURL(ES_URL), elastic.SetSniff(false))
+	client, err := elastic.NewSimpleClient(elastic.SetURL(ES_URL))
 	if err != nil {
 		panic(err)
 		return
 	}
 
+	//
 	// Use the IndexExists service to check if a specified index exists.
 	exists, err := client.IndexExists(INDEX).Do()
 	if err != nil {
