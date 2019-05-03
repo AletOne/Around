@@ -14,6 +14,7 @@ import (
 	"github.com/pborman/uuid"
 	elastic "gopkg.in/olivere/elastic.v3"
 
+	"cloud.google.com/go/bigtable"
 	"github.com/auth0/go-jwt-middleware"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
@@ -202,8 +203,27 @@ func handlerPost(w http.ResponseWriter, r *http.Request) {
 	saveToES(p, id)
 
 	//Save to BigTable
-	//saveToBigTable(p, id)
 
+	btClient, err := bigtable.NewClient(ctx, PROJECT_ID, BT_INSTANCE)
+	if err != nil {
+		panic(err)
+		return
+	}
+
+	tbl := btClient.Open("post")
+	mut := bigtable.NewMutation()
+	t := bigtable.Now()
+	mut.Set("post", "user", t, []byte(p.User))
+	mut.Set("post", "message", t, []byte(p.Message))
+	mut.Set("location", "lat", t, []byte(strconv.FormatFloat(p.Location.Lat, 'f', -1, 64)))
+	mut.Set("location", "lon", t, []byte(strconv.FormatFloat(p.Location.Lon, 'f', -1, 64)))
+
+	err = tbl.Apply(ctx, id, mut)
+	if err != nil {
+		panic(err)
+		return
+	}
+	fmt.Printf("Post is save to BigTable %s\n", p.Message)
 }
 
 func handlerSearch(w http.ResponseWriter, r *http.Request) {
